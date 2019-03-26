@@ -25,3 +25,6 @@ Determine the significance of the effect of social media on food pricing. Using 
 * https://www.quora.com/How-many-photos-of-Avocado-Toast-are-there-on-Instagram
 * http://www.fao.org/faostat/en/#data/PI
 * https://www.tandfonline.com/doi/full/10.1080/21649502.2015.1165838
+
+
+<iframe src="https://giphy.com/embed/1esph7X7LV6Xqb4pT2" width="480" height="480" frameBorder="0" class="giphy-embed" allowFullScreen></iframe><p><a href="https://giphy.com/gifs/thedodo-cute-squirrel-avocado-1esph7X7LV6Xqb4pT2">via GIPHY</a></p>
