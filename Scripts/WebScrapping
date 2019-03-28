@@ -1,0 +1,73 @@
+from selenium import webdriver
+from bs4 import BeautifulSoup
+import pandas as pd
+import datetime
+import time
+import numpy as np
+
+taglist = ['avocado', 'avocados', 'avocadotoast', 'wherearetheavocados', 'avocadooil', 'avocadolove', 'avocadolover',
+           'avocadoplant', 'avocadosalad', 'avocadoporn', 'avocadotree', 'avocadolovers', 'avocadoaddict', 'aguacate']
+
+driver = webdriver.Chrome('/Users/adriaferrer/IronhackRepos/Avocalypse/Tests/chromedriver')
+
+# Define lists to store hashtag information
+
+tag_name_list = []
+postids_list = []
+post_time_list = []
+megustas_list = []
+
+# Loop over each hashtag to extract information
+for tag in taglist:
+
+    driver.get('https://www.instagram.com/explore/tags/' + str(tag))
+    soup = BeautifulSoup(driver.page_source, "lxml")
+
+    # Extract current hashtag name
+    tagname = tag
+
+    # Extract total number of posts in this hashtag (visible in the 1st scroll, usually around 42)
+    nposts = soup.find('span', {'class': 'g47SY'}).text
+
+    # Extract all post links from 'explore tags' page
+    myli = []
+    for a in soup.find_all('a', href=True):
+        myli.append(a['href'])
+
+    # Keep link of only 30 most recent posts
+    newmyli = [x for x in myli if x.startswith('/p/')]
+    del newmyli[30:]
+
+    # Extract the info for each post of the tag
+    for postid in range(len(newmyli)):
+
+        driver.get('https://www.instagram.com' + str(newmyli[postid]))
+        soup = BeautifulSoup(driver.page_source, "lxml")
+
+        # Add tagname
+        tag_name_list.append(tag)
+
+        # Add post id
+        postids_list.append(postid)
+
+        # Add likes, if any
+        megustas = soup.find('div', {'class': 'Nm9Fw'})
+        if megustas is None:
+            print('Entra al NONE')
+            megustas_list.append('0')
+        else:
+            megustas_list.append(megustas.find('span').text)
+
+        # Add timestamp
+        for i in soup.findAll('time'):
+            if i.has_attr('datetime'):
+                post_time_list.append(i['datetime'])
+
+    # Add hashtag info to dataframe
+
+driver.quit()
+
+tag_df = pd.DataFrame({'tags': tag_name_list, 'postid': postids_list, 'date': post_time_list, 'likes': megustas_list})
+
+# CSV output for hashtag analysis (to be changed to a SQL DB)
+tag_df.to_csv('hashtag_list.csv')
