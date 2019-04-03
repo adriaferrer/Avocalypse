@@ -1,73 +1,112 @@
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import pandas as pd
-import datetime
 import time
 import numpy as np
+from sqlalchemy import create_engine
 
-taglist = ['avocado', 'avocados', 'avocadotoast', 'wherearetheavocados', 'avocadooil', 'avocadolove', 'avocadolover',
-           'avocadoplant', 'avocadosalad', 'avocadoporn', 'avocadotree', 'avocadolovers', 'avocadoaddict', 'aguacate']
+tag_list = ['avocado', 'avocados', 'avocadotoast', 'wherearetheavocados', 'avocadooil', 'avocadolove', 'avocadolover',
+            'avocadoplant', 'avocadosalad', 'avocadoporn', 'avocadotree', 'avocadolovers', 'avocadoaddict', 'aguacate']
 
 driver = webdriver.Chrome('/Users/adriaferrer/IronhackRepos/Avocalypse/Tests/chromedriver')
 
-# Define lists to store hashtag information
+# Define lists to store hash tag information
 
 tag_name_list = []
-postids_list = []
+post_ids_list = []
 post_time_list = []
-megustas_list = []
+likes_list = []
 
-# Loop over each hashtag to extract information
-for tag in taglist:
+# Loop over each hash tag to extract information
+for tag in tag_list:
+    print(f'This is #{tag}')
+    for scroll in range(100):
+        if scroll % 10 == 0:
+            print(f'This is scroll {scroll}')
+        driver.get('https://www.instagram.com/explore/tags/' + str(tag))
+        time.sleep(1)
 
-    driver.get('https://www.instagram.com/explore/tags/' + str(tag))
-    soup = BeautifulSoup(driver.page_source, "lxml")
+        # Extract current hash tag name
+        tag_name = tag
 
-    # Extract current hashtag name
-    tagname = tag
+        # Extract all post links from 'explore tags' page
+        post_links = []
 
-    # Extract total number of posts in this hashtag (visible in the 1st scroll, usually around 42)
-    nposts = soup.find('span', {'class': 'g47SY'}).text
-
-    # Extract all post links from 'explore tags' page
-    myli = []
-    for a in soup.find_all('a', href=True):
-        myli.append(a['href'])
-
-    # Keep link of only 30 most recent posts
-    newmyli = [x for x in myli if x.startswith('/p/')]
-    del newmyli[30:]
-
-    # Extract the info for each post of the tag
-    for postid in range(len(newmyli)):
-
-        driver.get('https://www.instagram.com' + str(newmyli[postid]))
-        soup = BeautifulSoup(driver.page_source, "lxml")
-
-        # Add tagname
-        tag_name_list.append(tag)
-
-        # Add post id
-        postids_list.append(postid)
-
-        # Add likes, if any
-        megustas = soup.find('div', {'class': 'Nm9Fw'})
-        if megustas is None:
-            print('Entra al NONE')
-            megustas_list.append('0')
+        if scroll == 0:
+            soup = BeautifulSoup(driver.page_source, "lxml")
+            recent = soup.find_all('div', {'class': 'Nnq7C weEfm'})
+            recent = recent[4:]
+            for row in recent:
+                for a in row.find_all('a', href=True):
+                    post_links.append(a['href'])
         else:
-            megustas_list.append(megustas.find('span').text)
+            for times in range(scroll):
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(1)
+            recent = driver.find_elements_by_class_name('KC1QD')
+            for row in recent:
+                recent = row.find_elements_by_tag_name('a')
+            for a in recent:
+                post_links.append(a.get_attribute('href').strip('https://www.instagram.com'))
+            post_links = post_links[9:]
 
-        # Add timestamp
-        for i in soup.findAll('time'):
-            if i.has_attr('datetime'):
+        # Keep link of only 30 most recent posts
+        if scroll == 0:
+            clean_post_links = [x for x in post_links if x.startswith('/p/')]
+        else:
+            clean_post_links = ['/p/' + x for x in post_links]
+
+        del clean_post_links[30:]
+
+        # Extract the info for each post of the tag
+        for post_id in range(len(clean_post_links)):
+
+            # Add tag name
+            tag_name_list.append(tag)
+            driver.get('https://www.instagram.com' + str(clean_post_links[post_id]))
+            soup = BeautifulSoup(driver.page_source, "lxml")
+
+            # Add post id
+            post_ids_list.append(str(clean_post_links[post_id]))
+
+            # Add likes, if any
+            likes = soup.find('div', {'class': 'Nm9Fw'})
+            if likes is None:
+                likes_list.append('0')
+            else:
+                try:
+                    likes_list.append(likes.find('span').text)
+                except:
+                    likes_list.append('1')
+
+            # Add timestamp
+            i = soup.find('time')
+            if i is None:
+                post_time_list.append(np.nan)
+            else:
                 post_time_list.append(i['datetime'])
-
-    # Add hashtag info to dataframe
 
 driver.quit()
 
-tag_df = pd.DataFrame({'tags': tag_name_list, 'postid': postids_list, 'date': post_time_list, 'likes': megustas_list})
+# Add hash tag info to data frame
 
-# CSV output for hashtag analysis (to be changed to a SQL DB)
-tag_df.to_csv('hashtag_list.csv')
+tag_df = pd.DataFrame({'tags': tag_name_list, 'postid': post_ids_list, 'date': post_time_list, 'likes': likes_list})
+
+# Data cleaning: removal of duplicates and incomplete data
+tag_df['postid'] = tag_df['postid'].str.strip('/p/')
+tag_df['date'] = tag_df['date'].astype('datetime64')
+tag_df['likes'] = tag_df['likes'].astype('float64')
+unique_tags_df = tag_df.drop_duplicates(subset='postid')
+unique_tags_df_nona = unique_tags_df.dropna()
+
+# upload to DB
+driver = 'mysql+pymysql:'
+user = 'root'
+password = '17028854'
+ip = '35.195.111.11'
+database = 'Avocalypse'
+
+connection_string = f'{driver}//{user}:{password}@{ip}/{database}'
+engine = create_engine(connection_string)
+
+unique_tags_df_nona.to_sql('insta_posts_notnull', con=engine)
