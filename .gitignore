@@ -106,3 +106,7 @@ venv.bak/
 \.DS_Store
 
 Tests/chromedriver
+
+*.xml
+
+\.idea/
