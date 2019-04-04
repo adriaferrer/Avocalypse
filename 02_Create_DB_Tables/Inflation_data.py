@@ -5,7 +5,7 @@ data_1 = pd.read_excel('/Users/adriaferrer/Desktop/inflation_raw.xlsx')
 
 driver = 'mysql+pymysql:'
 user = 'root'
-password = '17028854'
+password = ''#password goes here
 ip = '35.195.111.11'
 database = 'Avocalypse'
 

@@ -110,3 +110,5 @@ Tests/chromedriver
 *.xml
 
 \.idea/
+
+09_Tests_2/

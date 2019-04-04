@@ -8,7 +8,7 @@ countries = countries.reset_index()[['Area', 'Area Code']]
 
 driver = 'mysql+pymysql:'
 user = 'root'
-password = '17028854'
+password = '' #password goes here
 ip = '35.195.111.11'
 database = 'Avocalypse'
 
