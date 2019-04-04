@@ -20,7 +20,6 @@ Determine the significance of the effect of social media on food pricing. Using 
 * 04_Analysis: Notebooks with the main points of analysis, including the correlations and plots
 * 05_Models: Includes excel files with the regression models used
 * 06_Figures: Figures used for the presentation
-* 09_Tests: The room we all have in our home and wish nobody sees
   
 ## Data sources
 * https://www.kaggle.com/neuromusic/avocado-prices
